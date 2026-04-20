@@ -1,136 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Vocalink</title>
+    <meta charset="UTF-8">
+    <title>Vocalink</title>
 
-<style>
-body {
-  margin: 0;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #0f0f0f;
-  font-family: Arial, sans-serif;
-  color: white;
-}
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0f0f0f;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
 
-.container {
-  width: 60%;
-  max-width: 700px;
-  background: #1c1c1c;
-  border-radius: 16px;
-  padding: 20px;
-}
+        .container {
+            width: 60%;
+            max-width: 700px;
+            background: #1c1c1c;
+            border-radius: 16px;
+            padding: 20px;
+        }
 
-textarea {
-  width: 100%;
-  height: 300px;
-  background: #2a2a2a;
-  border: none;
-  border-radius: 12px;
-  padding: 15px;
-  color: white;
-  font-size: 16px;
-  resize: none;
-  outline: none;
-}
+        textarea {
+            width: 100%;
+            height: 300px;
+            background: #2a2a2a;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            font-size: 16px;
+            resize: none;
+            outline: none;
+        }
 
-button {
-  width: 100%;
-  margin-top: 10px;
-  padding: 12px;
-  border: none;
-  border-radius: 10px;
-  background: #4f46e5;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
-</style>
+        button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #4f46e5;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
 
 </head>
 
 <body>
 
 <div class="container">
-  <textarea id="output" placeholder="Speak and see translation here..."></textarea>
-  <button onclick="startListening()">Start Listening</button>
+    <textarea id="output" placeholder="Speak and see translation here..."></textarea>
+    <button onclick="startListening()">Start Listening</button>
 </div>
 
 <script>
-let recognition;
-let buffer = "";
-const output = document.getElementById("output");
+    let recognition;
+    let buffer = "";
+    const output = document.getElementById("output");
 
-function startListening() {
-  recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    function startListening() {
+        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
-  recognition.lang = "en-US";
-  recognition.continuous = true;
-  recognition.interimResults = true;
+        recognition.lang = "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = true;
 
-  recognition.onstart = () => {
-    console.log("🎤 Listening started");
-  };
+        recognition.onstart = () => {
+            console.log("🎤 Listening started");
+        };
 
-  recognition.onerror = (e) => {
-    console.log("❌ Error:", e.error);
-  };
+        recognition.onerror = (e) => {
+            console.log("❌ Error:", e.error);
+        };
 
-  recognition.onresult = async (event) => {
-    let text = "";
+        recognition.onresult = async (event) => {
+            let text = "";
 
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      text += event.results[i][0].transcript;
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                text += event.results[i][0].transcript;
+            }
+
+            buffer += " " + text;
+
+            let words = buffer.trim().split(" ");
+
+            if (words.length >= 8) {
+                let chunk = words.slice(0, 8).join(" ");
+                buffer = words.slice(8).join(" ");
+
+                const translated = await translate(chunk);
+
+                output.value += translated + "\n";
+            }
+        };
+
+        recognition.start();
     }
 
-    buffer += " " + text;
+    // 🌍 Translation
+    async function translate(text) {
+        try {
+            const res = await fetch("https://translate.argosopentech.com/translate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    q: text,
+                    source: "auto",
+                    target: "en",
+                    format: "text"
+                })
+            });
 
-    let words = buffer.trim().split(" ");
+            console.log("STATUS:", res.status);
 
-    if (words.length >= 8) {
-      let chunk = words.slice(0, 8).join(" ");
-      buffer = words.slice(8).join(" ");
+            const raw = await res.text();
+            console.log("RAW RESPONSE:", raw);
 
-      const translated = await translate(chunk);
+            const data = JSON.parse(raw);
+            return data.translatedText;
 
-      output.value += translated + "\n";
+        } catch (err) {
+            console.log("ERROR:", err);
+            return "[translation failed]";
+        }
+    
     }
-  };
-
-  recognition.start();
-}
-
-// 🌍 Translation
-async function translate(text) {
-  try {
-    const res = await fetch("https://translate.argosopentech.com/translate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        q: text,
-        source: "auto",
-        target: "en",
-        format: "text"
-      })
-    });
-
-    console.log("STATUS:", res.status);
-
-    const raw = await res.text();
-    console.log("RAW RESPONSE:", raw);
-
-    const data = JSON.parse(raw);
-    return data.translatedText;
-
-  } catch (err) {
-    console.log("ERROR:", err);
-    return "[translation failed]";
-  }
-}
-}
 </script>
 
 </body>
