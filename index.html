@@ -106,11 +106,9 @@ function startListening() {
 // 🌍 Translation
 async function translate(text) {
   try {
-    const res = await fetch("https://libretranslate.de/translate", {
+    const res = await fetch("https://translate.argosopentech.com/translate", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         q: text,
         source: "auto",
@@ -119,12 +117,19 @@ async function translate(text) {
       })
     });
 
-    const data = await res.json();
+    console.log("STATUS:", res.status);
+
+    const raw = await res.text();
+    console.log("RAW RESPONSE:", raw);
+
+    const data = JSON.parse(raw);
     return data.translatedText;
+
   } catch (err) {
-    console.log("Translation error:", err);
+    console.log("ERROR:", err);
     return "[translation failed]";
   }
+}
 }
 </script>
 
