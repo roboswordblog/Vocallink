@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vocalink</title>
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0f0f0f;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+.container {
+  width: 60%;
+  max-width: 750px;
+  background: #1c1c1c;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+textarea {
+  width: 100%;
+  height: 300px;
+  background: #2a2a2a;
+  border: none;
+  border-radius: 12px;
+  padding: 15px;
+  color: white;
+  font-size: 16px;
+  resize: none;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #6366f1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>Vocalink</h1>
+
+  <textarea id="output" placeholder="Speak and translated text will appear here..."></textarea>
+
+  <button onclick="startListening()">Start Listening</button>
+</div>
+
+<script>
+let recognition;
+let buffer = "";
+const output = document.getElementById("output");
+
+function startListening() {
+  recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+
+  recognition.lang = "en-US";
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    console.log("🎤 Listening...");
+  };
+
+  recognition.onerror = (e) => {
+    console.log("Speech error:", e.error);
+  };
+
+  recognition.onresult = async (event) => {
+    let text = "";
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      text += event.results[i][0].transcript;
+    }
+
+    buffer += " " + text;
+
+    let words = buffer.trim().split(" ");
+
+    if (words.length >= 8) {
+      let chunk = words.slice(0, 8).join(" ");
+      buffer = words.slice(8).join(" ");
+
+      const translated = await translate(chunk);
+
+      output.value += translated + "\n";
+    }
+  };
+
+  recognition.start();
+}
+
+// 🌐 CALLS YOUR FLASK BACKEND
+async function translate(text) {
+  try {
+    const res = await fetch("http://localhost:5000/translate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ q: text })
+    });
+
+    const data = await res.json();
+    return data.translatedText || text;
+
+  } catch (err) {
+    console.log("Backend error:", err);
+    return "[translation failed]";
+  }
+}
+</script>
+
+</body>
+</html>
